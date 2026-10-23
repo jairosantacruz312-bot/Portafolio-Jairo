@@ -439,10 +439,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
 /* ____________ ONDA ANIMADA EN LA CABECERA (entre la marca y el menú). Color: --wave-color ____________ */
 .hwave{--wave-color:#14a800;flex:1 1 0;min-width:0;max-width:460px;height:40px;margin:0 clamp(8px,3vw,40px);display:flex;align-items:center;justify-content:space-between;color:var(--wave-color);overflow:hidden}
-.hwave__bar{flex:0 0 3px;width:3px;height:var(--height);border-radius:999px;background:currentColor;opacity:var(--opacity);transform:scaleY(.2);animation:hwave var(--duration) ease-in-out infinite;animation-delay:var(--delay)}
-@keyframes hwave{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(1)}}
-.hwave[data-paused="true"] .hwave__bar{animation:none;transform:scaleY(var(--dot,.2));transition:transform .45s ease} /* en reposo las barras se encogen y quedan como PUNTOS (3px); al reproducir vuelven a ser barras */
-@media(prefers-reduced-motion:reduce){.hwave__bar{animation:none;transform:scaleY(.4)}.hwave[data-paused="true"] .hwave__bar{transform:scaleY(var(--dot,.2))}}
+.hwave__bar{flex:0 0 3px;width:3px;height:var(--height);border-radius:999px;background:currentColor;opacity:var(--opacity);transform:scaleY(var(--dot,.2));transform-origin:center} /* el movimiento lo calcula el script 27 (movimiento orgánico) */
+.hwave[data-paused="true"] .hwave__bar{transition:transform .45s ease} /* al pausar, las barras se encogen suavemente a PUNTOS (3px) */
 </style>
 </head>
 <body>
@@ -2055,6 +2053,7 @@ window.AVATARS = {
       var hh=4+26*Math.pow(env,1.35);
       b.style.setProperty('--height',hh.toFixed(1)+'px');
       b.style.setProperty('--dot',(3/hh).toFixed(4)); /* escala que convierte la barra en un punto redondo de 3px */
+      b.dataset.env=env.toFixed(3);                       /* barras del centro se mueven más que las de los extremos */
       b.style.setProperty('--duration',(1.1+.5*(.5+.5*Math.sin(i*1.7))).toFixed(2)+'s');
       b.style.setProperty('--delay',(-i*.095).toFixed(3)+'s');
       b.style.setProperty('--opacity',(.5+.5*env).toFixed(2));
@@ -2062,7 +2061,33 @@ window.AVATARS = {
     }
   }
   build(); addEventListener('resize',build); if(window.ResizeObserver)new ResizeObserver(build).observe(host);
-  function setPlaying(on){host.dataset.paused=on?'false':'true'}
+  /* ____________ MOVIMIENTO ORGÁNICO: mientras suena un video, cada barra sube y baja con un ritmo irregular y cambiante (con "golpes" de energía al azar). NO mide el volumen real: los videos incrustados no permiten acceder a su audio ____________ */
+  var raf=0, t0=0, vals=[], pulse=0, nextPulse=0;
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function frame(ts){
+    raf=requestAnimationFrame(frame);
+    var t=ts/1000, bars=host.children, n=bars.length;
+    if(t>nextPulse){pulse=.6+Math.random()*.4; nextPulse=t+.25+Math.random()*.7;}   /* golpe de energía */
+    pulse*=.9;
+    var g=.62+.38*Math.sin(t*.9+1)*Math.sin(t*.37+.5);                               /* energía general que sube y baja despacio */
+    for(var i=0;i<n;i++){
+      var a=1.8+((i*37)%19)/19*2.8, b=.7+((i*53)%13)/13*1.4;
+      var nz=.6*Math.abs(Math.sin(t*a+i*1.7))+.4*Math.abs(Math.sin(t*b+i*.9));
+      var env=parseFloat(bars[i].dataset.env||1);
+      var target=Math.min(1,Math.max(.1,(.1+nz*g+pulse*.28*nz)*(.55+.45*env)));
+      var v=vals[i]===undefined?parseFloat(bars[i].style.getPropertyValue('--dot'))||.2:vals[i];
+      v+= (target-v)*(target>v?.38:.13);                                             /* sube rápido, baja más despacio */
+      vals[i]=v; bars[i].style.transform='scaleY('+v.toFixed(3)+')';
+    }
+  }
+  function setPlaying(on){
+    var was=host.dataset.paused==='false';
+    host.dataset.paused=on?'false':'true';
+    if(reduce)return;
+    if(on&&!raf){vals=[];nextPulse=0;raf=requestAnimationFrame(frame)}
+    else if(!on&&raf){cancelAnimationFrame(raf);raf=0;vals=[];Array.prototype.forEach.call(host.children,function(b){b.style.transform=''})} /* sin estilo en línea: vuelve a puntos */
+  }
+  window.hwave={play:function(){setPlaying(true)},pause:function(){setPlaying(false)}}; /* para pruebas desde la consola: hwave.play() / hwave.pause() */
 
   /* ____________ Escucha el reproductor activo (el iframe de YouTube o Vimeo que crea la sección B2) ____________ */
   var cur=null;
@@ -2092,11 +2117,34 @@ window.AVATARS = {
     else if(d.event==='pause'||d.event==='ended'||d.event==='finish')setPlaying(false);
   });
   document.querySelectorAll('.player').forEach(function(p){
-    var f=p.querySelector('iframe'); if(f)hook(f);
+    var f=p.querySelector('iframe'); if(f&&!p.closest('[hidden]'))hook(f); /* al cargar, solo se escucha el reproductor del cuadro visible */
     new MutationObserver(function(){var g=p.querySelector('iframe'); if(g)hook(g); else if(cur&&!document.contains(cur)){cur=null;setPlaying(false)}}).observe(p,{childList:true});
   });
   /* si se cambia de lado/pestaña (el video queda oculto) o se quita el reproductor, la onda se detiene */
-  setInterval(function(){if(cur&&(!document.contains(cur)||!cur.offsetParent)){cur=null;setPlaying(false)}},400);
+  setInterval(function(){
+    if(cur&&!document.contains(cur)){cur=null;setPlaying(false)}
+    else if(cur&&!cur.offsetParent)setPlaying(false); /* video oculto: la onda se detiene (se sigue escuchando ese reproductor por si se vuelve a él) */
+  },400);
+
+  /* ____________ AL CAMBIAR DE CUADRO (Side A / B / C) el video del cuadro que se oculta se PAUSA al instante ____________ */
+  function pauseFrame(f){
+    var w=f.contentWindow; if(!w)return;
+    try{
+      if(/youtube/.test(f.src))w.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}),'*');
+      else if(/vimeo/.test(f.src))w.postMessage(JSON.stringify({method:'pause'}),'*');
+    }catch(e){}
+  }
+  document.querySelectorAll('.side').forEach(function(tab){
+    tab.addEventListener('click',function(){ /* este manejador corre después del que cambia de cuadro (sección 18), así que los paneles ya están ocultos/visibles */
+      document.querySelectorAll('section[id^="panel-"], [id^="panel-"]').forEach(function(panel){
+        var f=panel.querySelector('.player iframe');
+        if(!f)return;
+        if(panel.hidden)pauseFrame(f);                   /* el que se oculta: pausa */
+        else hook(f);                                    /* el que se muestra: la onda vuelve a escucharlo */
+      });
+      setPlaying(false);
+    });
+  });
 })();
 </script>
 </body>
