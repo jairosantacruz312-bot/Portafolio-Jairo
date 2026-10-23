@@ -1000,8 +1000,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 <div class="wrap">
   <div class="contact">
     <div>
-      <h2 id="t-contacto">Let's sound together</h2>
-      <p class="muted">I'll help you bring your project to life. Tell me about your project and I'll reply with a quote on Upwork. Together, we can make great sound that brings your film to life.</p>
+      <h2 id="t-contacto">Let's sound together!</h2>
+      <p class="muted">Let's talk about your project on Upwork. Together, we can make great sound that brings your film to life.</p>
       <!-- Los datos de contacto NO están en el HTML: aparecen en un globito al hacer clic en el emoji (sección 22) -->
     </div>
     <!-- ____________ EMOJI ANIMADO (reemplaza los botones): parpadea solo y reacciona al hacer clic. Imagen y código en la sección 22 ____________ -->
@@ -1928,7 +1928,7 @@ window.AVATARS = {
  "A Playing Field Called Colombia: Season 3": "Una cancha llamada Colombia: Tercera temporada",
  "Euphoria: Season 3": "Euphoria: Tercera temporada",
  "EUPHORIA: SEASON 3": "EUPHORIA: TERCERA TEMPORADA",
- "Let's sound together": "¡Creemos juntos!",
+ "Let's sound together!": "¡Creemos juntos!",
  "Altered Reality": "Realidad alterada",
  "Geometric Dreams": "Sueños geométricos",
  "Description:": "Descripción:",
@@ -1948,7 +1948,7 @@ window.AVATARS = {
  "FILMS & TV SHOWS": "PELÍCULAS Y SERIES",
  "COMING SOON": "PRÓXIMAMENTE",
  "MY WORK HAS BEEN FEATURED ON": "MI TRABAJO SE ENCUENTRA EN",
-  "I'll help you bring your project to life. Tell me about your project and I'll reply with a quote on Upwork. Together, we can make great sound that brings your film to life.": "Le daré vida a tu proyecto audiovisual. Vamos a hablar de tu proyecto en UPWORK.",
+  "Let's talk about your project on Upwork. Together, we can make great sound that brings your film to life.": "Vamos a hablar de tu proyecto en UPWORK. Juntos, podemos darle vida a tu proyecto audiovisual con un sonido de alta calidad.",
  "Medellín, Colombia": "Medellín, Colombia",
  "Email": "Correo",
  "In this thriller set in Colombia, I was in charge of sound effects editing as well as Foley editing.": "En este thriller ambientado en Colombia, estuve a cargo de la edición de efectos de sonido y de la edición de Foley.",
@@ -2089,8 +2089,8 @@ window.AVATARS = {
   }
   window.hwave={play:function(){setPlaying(true)},pause:function(){setPlaying(false)}}; /* para pruebas desde la consola: hwave.play() / hwave.pause() */
 
-  /* ____________ Escucha el reproductor activo (el iframe de YouTube o Vimeo que crea la sección B2) ____________ */
-  var cur=null;
+  /* ____________ Escucha los reproductores (iframes de YouTube / Vimeo que crea la sección B2) ____________ */
+  var cur=null, state=new WeakMap();   /* cur = reproductor del cuadro visible · state = 1 si ese iframe está sonando, 0 si no */
   function talk(f){
     var w=f.contentWindow; if(!w)return;
     try{
@@ -2102,47 +2102,60 @@ window.AVATARS = {
       }
     }catch(e){}
   }
-  function hook(f){
-    if(f===cur)return; cur=f; setPlaying(false);
+  function watch(f){                                   /* escucha un iframe (aunque esté en un cuadro oculto) para saber si suena */
+    if(f.__watched)return; f.__watched=1;
     f.addEventListener('load',function(){talk(f)});
-    setTimeout(function(){talk(f)},1200); /* por si el evento load ya pasó */
+    setTimeout(function(){talk(f)},1200); setTimeout(function(){talk(f)},3500); /* refuerzos por si el reproductor tarda en estar listo */
   }
+  function hook(f){ watch(f); if(f===cur)return; cur=f; setPlaying(state.get(f)===1); talk(f); }
+  function frameOf(win){ var l=document.querySelectorAll('.player iframe'); for(var i=0;i<l.length;i++)if(l[i].contentWindow===win)return l[i]; return null; }
   addEventListener('message',function(e){
-    if(!cur||e.source!==cur.contentWindow)return;
+    var f=frameOf(e.source); if(!f)return;
     var d=e.data; if(typeof d==='string'){try{d=JSON.parse(d)}catch(x){return}}
     if(!d||typeof d!=='object')return;
-    if(d.event==='onStateChange')setPlaying(d.info===1);                                  /* YouTube: 1 = reproduciendo */
-    else if((d.event==='infoDelivery'||d.event==='initialDelivery')&&d.info&&typeof d.info.playerState==='number')setPlaying(d.info.playerState===1);
-    else if(d.event==='play'||d.event==='playing')setPlaying(true);                       /* Vimeo */
-    else if(d.event==='pause'||d.event==='ended'||d.event==='finish')setPlaying(false);
+    var on=null;
+    if(d.event==='onStateChange')on=(d.info===1);                                          /* YouTube: 1 = reproduciendo */
+    else if((d.event==='infoDelivery'||d.event==='initialDelivery')&&d.info&&typeof d.info.playerState==='number')on=(d.info.playerState===1);
+    else if(d.event==='play'||d.event==='playing')on=true;                                 /* Vimeo */
+    else if(d.event==='pause'||d.event==='ended'||d.event==='finish')on=false;
+    if(on===null)return;
+    state.set(f,on?1:0);
+    if(f===cur)setPlaying(on);
   });
   document.querySelectorAll('.player').forEach(function(p){
-    var f=p.querySelector('iframe'); if(f&&!p.closest('[hidden]'))hook(f); /* al cargar, solo se escucha el reproductor del cuadro visible */
-    new MutationObserver(function(){var g=p.querySelector('iframe'); if(g)hook(g); else if(cur&&!document.contains(cur)){cur=null;setPlaying(false)}}).observe(p,{childList:true});
+    var f=p.querySelector('iframe'); if(f){ if(p.closest('[hidden]'))watch(f); else hook(f); } /* al cargar: el del cuadro visible se enlaza a la onda; los demás solo se escuchan */
+    new MutationObserver(function(){var g=p.querySelector('iframe'); if(g){ if(p.closest('[hidden]'))watch(g); else hook(g); } else if(cur&&!document.contains(cur)){cur=null;setPlaying(false)}}).observe(p,{childList:true});
   });
-  /* si se cambia de lado/pestaña (el video queda oculto) o se quita el reproductor, la onda se detiene */
+  /* si se quita el reproductor o su cuadro queda oculto, la onda se detiene */
   setInterval(function(){
     if(cur&&!document.contains(cur)){cur=null;setPlaying(false)}
-    else if(cur&&!cur.offsetParent)setPlaying(false); /* video oculto: la onda se detiene (se sigue escuchando ese reproductor por si se vuelve a él) */
+    else if(cur&&!cur.offsetParent)setPlaying(false);
   },400);
 
   /* ____________ AL CAMBIAR DE CUADRO (Side A / B / C) el video del cuadro que se oculta se PAUSA al instante ____________ */
   function pauseFrame(f){
     var w=f.contentWindow; if(!w)return;
     try{
-      if(/youtube/.test(f.src))w.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}),'*');
+      if(/youtube/.test(f.src))w.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[],id:1,channel:'widget'}),'*');
       else if(/vimeo/.test(f.src))w.postMessage(JSON.stringify({method:'pause'}),'*');
     }catch(e){}
+    /* RESPALDO: si 0,5 s después no hay confirmación de que quedó en pausa y el cuadro sigue oculto, se recarga el reproductor SIN autoplay (así es imposible que siga sonando) */
+    setTimeout(function(){
+      if(!document.contains(f))return;
+      var panel=f.closest('[id^="panel-"]'); if(!panel||!panel.hidden)return;
+      if(state.get(f)===0)return;                         /* confirmado en pausa: se conserva la posición del video */
+      try{ var u=new URL(f.src); u.searchParams.delete('autoplay'); f.src=u.toString(); state.set(f,0); }catch(e){ f.src='about:blank'; }
+    },500);
   }
   document.querySelectorAll('.side').forEach(function(tab){
     tab.addEventListener('click',function(){ /* este manejador corre después del que cambia de cuadro (sección 18), así que los paneles ya están ocultos/visibles */
-      document.querySelectorAll('section[id^="panel-"], [id^="panel-"]').forEach(function(panel){
+      document.querySelectorAll('[id^="panel-"]').forEach(function(panel){
         var f=panel.querySelector('.player iframe');
         if(!f)return;
         if(panel.hidden)pauseFrame(f);                   /* el que se oculta: pausa */
         else hook(f);                                    /* el que se muestra: la onda vuelve a escucharlo */
       });
-      setPlaying(false);
+      if(!cur||!cur.offsetParent)setPlaying(false);
     });
   });
 })();
