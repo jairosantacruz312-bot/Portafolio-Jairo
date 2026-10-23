@@ -139,6 +139,8 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 .player-link{position:relative;display:block;width:100%;height:100%;background:#000;color:#fff;text-decoration:none}
 .player-link img{width:100%;height:100%;object-fit:cover;display:block;opacity:.8;transition:opacity .25s,transform .4s}
 .player-link:hover img{opacity:1;transform:scale(1.03)}
+.player-link img.crop-bars{transform:scale(1.34)} /* recorta las franjas negras de hqdefault (4:3) para que llene la ventana 16:9 */
+.player-link:hover img.crop-bars{transform:scale(1.38)}
 .player-link.ig{background:linear-gradient(135deg,#1b1230,#3a1740 45%,#5a1d3a 75%,#2a1209)} /* fondo de la portada de Instagram (no se puede incrustar su portada) */
 .pl-play{position:absolute;left:50%;top:50%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:var(--green);box-shadow:0 8px 28px rgba(0,0,0,.5);transition:transform .2s}
 .pl-play::before{content:"";position:absolute;left:30px;top:22px;border-style:solid;border-width:16px 0 16px 26px;border-color:transparent transparent transparent #fff}
@@ -1089,8 +1091,15 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
         a.className='player-link'+(isI?' ig':'');a.href=isI?'https://www.instagram.com/reel/'+encodeURIComponent(d.instagram)+'/':'https://www.youtube.com/watch?v='+encodeURIComponent(d.id);
         a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('aria-label','Watch '+d.title+' on '+(isI?'Instagram':'YouTube'));
         var im2=document.createElement('img');im2.alt='';im2.loading='lazy';
-        if(isI){im2.remove();}else{im2.src='https://i.ytimg.com/vi/'+encodeURIComponent(d.id)+'/hqdefault.jpg';} /* portada del video (la da YouTube; Instagram no da portada, así que se usa un fondo de color) */
-        im2.onerror=function(){im2.remove()};
+        if(isI){im2.remove();}else{
+          /* PORTADA 16:9 SIN BARRAS NEGRAS: se pide maxresdefault (1280x720, sin franjas). Si el video no la tiene, se usa hqdefault (4:3 con franjas negras arriba y abajo) ampliada para recortarlas (clase .crop-bars) */
+          var vid=encodeURIComponent(d.id);
+          im2.src='https://i.ytimg.com/vi/'+vid+'/maxresdefault.jpg';
+          var fell=false;
+          function fallback(){ if(fell){im2.remove();return} fell=true; im2.classList.add('crop-bars'); im2.src='https://i.ytimg.com/vi/'+vid+'/hqdefault.jpg'; }
+          im2.onload=function(){ if(!fell&&im2.naturalWidth<=160)fallback(); }; /* YouTube a veces responde con una imagen mini de relleno en vez de un error */
+          im2.onerror=fallback;
+        } /* portada del video (la da YouTube; Instagram no da portada, así que se usa un fondo de color) */
         var pb=document.createElement('span');pb.className='pl-play';pb.setAttribute('aria-hidden','true');
         var tx=document.createElement('span');tx.className='pl-text';tx.textContent=isI?'Watch on Instagram':'Watch on YouTube';
         if(!isI)a.appendChild(im2);a.appendChild(pb);a.appendChild(tx);player.appendChild(a);
@@ -2090,7 +2099,7 @@ window.AVATARS = {
   window.hwave={play:function(){setPlaying(true)},pause:function(){setPlaying(false)}}; /* para pruebas desde la consola: hwave.play() / hwave.pause() */
 
   /* ____________ Escucha los reproductores (iframes de YouTube / Vimeo que crea la sección B2) ____________ */
-  var cur=null, state=new WeakMap();   /* cur = reproductor del cuadro visible · state = 1 si ese iframe está sonando, 0 si no */
+  var cur=null, state=new WeakMap(), vol=new WeakMap(); /* vol = volumen (0-100) que tiene el reproductor, para restaurarlo después del fade */   /* cur = reproductor del cuadro visible · state = 1 si ese iframe está sonando, 0 si no */
   function talk(f){
     var w=f.contentWindow; if(!w)return;
     try{
@@ -2098,7 +2107,7 @@ window.AVATARS = {
         w.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*');
         w.postMessage(JSON.stringify({event:'command',func:'addEventListener',args:['onStateChange'],id:1,channel:'widget'}),'*');
       }else if(/vimeo/.test(f.src)){
-        ['play','playing','pause','ended','finish'].forEach(function(ev){w.postMessage(JSON.stringify({method:'addEventListener',value:ev}),'*')});
+        ['play','playing','pause','ended','finish','volumechange'].forEach(function(ev){w.postMessage(JSON.stringify({method:'addEventListener',value:ev}),'*')});
       }
     }catch(e){}
   }
@@ -2113,6 +2122,10 @@ window.AVATARS = {
     var f=frameOf(e.source); if(!f)return;
     var d=e.data; if(typeof d==='string'){try{d=JSON.parse(d)}catch(x){return}}
     if(!d||typeof d!=='object')return;
+    if(!f.__fading){                                                                          /* volumen que tiene puesto la persona (no el del fade) */
+      if(d.info&&typeof d.info.volume==='number')vol.set(f,d.info.volume);                    /* YouTube: 0-100 */
+      if(d.event==='volumechange'&&d.data&&typeof d.data.volume==='number')vol.set(f,d.data.volume*100); /* Vimeo: 0-1 */
+    }
     var on=null;
     if(d.event==='onStateChange')on=(d.info===1);                                          /* YouTube: 1 = reproduciendo */
     else if((d.event==='infoDelivery'||d.event==='initialDelivery')&&d.info&&typeof d.info.playerState==='number')on=(d.info.playerState===1);
@@ -2133,19 +2146,47 @@ window.AVATARS = {
   },400);
 
   /* ____________ AL CAMBIAR DE CUADRO (Side A / B / C) el video del cuadro que se oculta se PAUSA al instante ____________ */
-  function pauseFrame(f){
+  /* FADE OUT: antes de pausar se baja el volumen en pocos pasos (así no se corta el audio de golpe y no se oye el "clic"). Al terminar se pausa y se RESTAURA el volumen del usuario */
+  var FADE_MS=240, FADE_STEPS=8;                          /* duración del fade en milisegundos y número de pasos: cambia FADE_MS para hacerlo más corto o más largo */
+  function setVol(f,pct){                                 /* pct: 0-100 */
+    var w=f.contentWindow; if(!w)return;
+    try{
+      if(/youtube/.test(f.src))w.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[Math.round(pct)],id:1,channel:'widget'}),'*');
+      else if(/vimeo/.test(f.src))w.postMessage(JSON.stringify({method:'setVolume',value:Math.max(0,Math.min(1,pct/100))}),'*');
+    }catch(e){}
+  }
+  function cancelFade(f){                                  /* si se vuelve a ese cuadro durante el fade: se cancela y se restaura el volumen */
+    if(!f.__fade)return;
+    f.__fade.forEach(clearTimeout); f.__fade=null; f.__fading=false;
+    setVol(f,vol.get(f)!==undefined?vol.get(f):100);
+  }
+  function sendPause(f){
     var w=f.contentWindow; if(!w)return;
     try{
       if(/youtube/.test(f.src))w.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[],id:1,channel:'widget'}),'*');
       else if(/vimeo/.test(f.src))w.postMessage(JSON.stringify({method:'pause'}),'*');
     }catch(e){}
-    /* RESPALDO: si 0,5 s después no hay confirmación de que quedó en pausa y el cuadro sigue oculto, se recarga el reproductor SIN autoplay (así es imposible que siga sonando) */
+  }
+  function pauseFrame(f){
+    if(f.__fade)return;
+    var v0=vol.get(f); if(v0===undefined)v0=100;          /* volumen original (por defecto 100%) */
+    var playing=state.get(f)!==0;                         /* si no se sabe su estado, se hace el fade igual (es inofensivo) */
+    f.__fading=true; f.__fade=[];
+    if(playing){                                           /* no se hace fade solo si se SABE que ya estaba en pausa */
+      for(var i=1;i<=FADE_STEPS;i++)(function(i){
+        f.__fade.push(setTimeout(function(){setVol(f,v0*(1-i/FADE_STEPS))},FADE_MS*i/FADE_STEPS));
+      })(i);
+    }
+    var tPause=playing?FADE_MS+30:0;
+    f.__fade.push(setTimeout(function(){ sendPause(f); },tPause));
+    f.__fade.push(setTimeout(function(){ setVol(f,v0); f.__fading=false; f.__fade=null; },tPause+250)); /* ya en pausa: vuelve el volumen para cuando se regrese */
+    /* RESPALDO: si no hay confirmación de pausa y el cuadro sigue oculto, se recarga el reproductor SIN autoplay (así es imposible que siga sonando) */
     setTimeout(function(){
       if(!document.contains(f))return;
       var panel=f.closest('[id^="panel-"]'); if(!panel||!panel.hidden)return;
       if(state.get(f)===0)return;                         /* confirmado en pausa: se conserva la posición del video */
       try{ var u=new URL(f.src); u.searchParams.delete('autoplay'); f.src=u.toString(); state.set(f,0); }catch(e){ f.src='about:blank'; }
-    },500);
+    },tPause+900);
   }
   document.querySelectorAll('.side').forEach(function(tab){
     tab.addEventListener('click',function(){ /* este manejador corre después del que cambia de cuadro (sección 18), así que los paneles ya están ocultos/visibles */
@@ -2153,7 +2194,7 @@ window.AVATARS = {
         var f=panel.querySelector('.player iframe');
         if(!f)return;
         if(panel.hidden)pauseFrame(f);                   /* el que se oculta: pausa */
-        else hook(f);                                    /* el que se muestra: la onda vuelve a escucharlo */
+        else { cancelFade(f); hook(f); }                 /* el que se muestra: se cancela un fade pendiente y la onda vuelve a escucharlo */
       });
       if(!cur||!cur.offsetParent)setPlaying(false);
     });
