@@ -250,7 +250,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 .featured:not(.featured--b){padding-top:8px;padding-bottom:16px}
 .featured:not(.featured--b)::before,.featured:not(.featured--b)::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 140px,#000 calc(100% - 140px),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 140px,#000 calc(100% - 140px),transparent 100%)}
 .featured:not(.featured--b) .wrap::before,.featured:not(.featured--b) .wrap::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 90px,#000 calc(100% - 90px),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 90px,#000 calc(100% - 90px),transparent 100%)}
-.featured:not(.featured--b)+#servicios{border-top:0;padding-top:40px} /* quita la línea entre la franja y "My Services" y los acerca */
+.featured:not(.featured--b)+#servicios{border-top:0;padding-top:72px} /* quita la línea entre la franja y "My Services"; padding-top = distancia entre los logos y "My Services" (sube para bajarlo más) */
 
 /* PRIMERA franja: logos en GRIS (combinan con el fondo negro) y solo toman su color (y el fondo de color) al pasar el cursor. Para un gris más oscuro baja el brightness; para quitar el efecto, borra esta regla */
 .featured:not(.featured--b) .logo:not(:hover) img{filter:grayscale(1) brightness(.85)}
@@ -263,15 +263,19 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%)}
 
 /* PRIMERA franja: fondos MÁS INTENSOS para Disney+ (azul más vivo) y Hulu (verde azulado más vivo). Para más intensidad sube los colores/alphas; para menos, acércalos al negro */
-.featured:not(.featured--b)::after{background:linear-gradient(180deg,#090a38 0%,#101e6e 30%,#1a3aa8 50%,#2250c4 68%,#2b66d8 84%,#377ae2 100%)}
+.featured:not(.featured--b)::after{background:linear-gradient(180deg,#070530 0%,#0b1550 30%,#13286f 50%,#183a94 68%,#1d4aa8 84%,#2559bb 100%)}
+/* Hulu (primera franja): fondo parecido al de la franja de abajo pero un poco más intenso. Sube los colores/alpha para más intensidad */
 .featured:not(.featured--b) .wrap::after{background:
-    radial-gradient(ellipse at 50% 50%,rgba(28,231,131,.36) 0,transparent 62%),
-    radial-gradient(ellipse at 100% 100%,#0c7a62 0,transparent 66%),
-    radial-gradient(ellipse at 100% 30%,#08403f 0,transparent 60%),
-    linear-gradient(100deg,#020a07 0%,#052a20 50%,#0a4f42 100%)}
+    radial-gradient(ellipse at 50% 50%,rgba(28,231,131,.12) 0,transparent 62%),
+    radial-gradient(ellipse at 100% 100%,#094039 0,transparent 64%),
+    radial-gradient(ellipse at 100% 30%,#072a31 0,transparent 58%),
+    linear-gradient(100deg,#010302 0%,#03150f 45%,#062a25 100%)}
+/* Hulu: el resplandor solo llega desde la derecha hasta un poquito pasado el logo de Disney+. Para que llegue más lejos, baja los dos % (47% y 68%); para que llegue menos, súbelos */
+.featured:not(.featured--b) .wrap::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%),linear-gradient(90deg,transparent 47%,#000 68%);mask-image:linear-gradient(180deg,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%),linear-gradient(90deg,transparent 47%,#000 68%);-webkit-mask-composite:source-in;mask-composite:intersect}
 
 /* PRIMERA franja: al pasar el cursor, los logos de HBO Max, Disney+ y Hulu toman su color pero un poco apagado (opacidad). Sube el .78 para más brillo, bájalo para más apagado */
-.featured:not(.featured--b) .logo-hbo:hover img,.featured:not(.featured--b) .logo-disney:hover img,.featured:not(.featured--b) .logo-hulu:hover img{opacity:.78}
+.featured:not(.featured--b) .logo-hbo:hover img,.featured:not(.featured--b) .logo-disney:hover img{opacity:.78}
+.featured:not(.featured--b) .logo-hulu:hover img{opacity:.58;filter:saturate(.85)} /* Hulu más tenue que los demás: sube el .58 para más brillo, bájalo para más apagado */
 
 /* ANIMACIÓN DE LLAMADA DE ATENCIÓN en los 3 botones de "Projects": se mueven muy suavemente (arriba/abajo) mientras están a la vista; se detiene al pasar el cursor o al hacer clic en alguno. Distancia: --nudge | duración: 2.8s | escalonado: delay de cada botón */
 @keyframes sideNudge{0%,55%,100%{transform:translateY(0)}25%{transform:translateY(calc(var(--nudge,4px) * -1))}}
@@ -280,6 +284,10 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 .sides.nudge .side:nth-child(3){animation-delay:.36s}
 .sides.nudge:hover .side,.sides.nudge .side:hover{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.sides.nudge .side{animation:none}}
+
+/* EMOJI DE LA CABECERA: se difumina y desaparece mientras estás en "About me" (portada) y aparece al bajar a las demás secciones. Su espacio se conserva para que "About me" no se mueva. Velocidad: .5s */
+.brand-wrap .animoji{transition:opacity .5s ease,filter .5s ease}
+body.hero-in-view .brand-wrap .animoji{opacity:0;filter:blur(8px);pointer-events:none}
 
 /* _______________________________________________________________________ */
 /* 9. ESTILOS: CONTACTO Y PIE DE PÁGINA (el cuadro de contacto tiene su propio ancho máximo: .contact{max-width:1072px}) */
@@ -548,7 +556,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
     <!-- ____________ DESCRIPCIÓN: dos párrafos debajo del avatar (ancho completo) ____________ -->
     <div class="hero-text hero-bottom">
-      <p class="sub">I've contributed to high impact productions for Disney+, Netflix and HBO Max, as well as independent film and other audiovisual projects. My skills span cinematic sound design, Foley, dialogue editing and restoration, and immersive audio for VR and multimedia experiences.</p>
+      <p class="sub">I've contributed to high impact productions for different streaming platforms, as well as independent film and other audiovisual projects. My skills span cinematic sound design, Foley, dialogue editing and restoration, and immersive audio for VR and multimedia experiences.</p>
     </div>
   </div>
 
@@ -659,7 +667,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
 <!-- ____________ SELECTOR "Project Portfolio" (portafolio): sigue debajo de Services & Skills ____________ -->
 <div class="wrap hero-sides" id="portafolio">
-  <h2 class="pick-title">Projects</h2>
+  <h2 class="pick-title">Projects portfolio</h2>
   <div class="sides" role="tablist" aria-label="Type of work">
     <!-- LADO A (el que se ve primero): muestra el panel "panel-cine" (sección 12) -->
     <button class="side" role="tab" id="tab-cine" aria-controls="panel-cine" aria-selected="true" data-target="panel-cine" type="button">
@@ -1933,7 +1941,7 @@ window.AVATARS = {
  "Hi, my name is": "Hola, soy",
  ". I am a sound engineer working across audio post production. Focused on telling stories through sound": ". Soy un ingeniero de sonido y me especializo en la post producción de audio. Me encargo de realizar narrativas para cine a través del sonido",
  "Cartoon avatar of Jairo wearing headphones; his eyes follow your cursor": "Avatar de caricatura de Jairo con audífonos; sus ojos siguen tu cursor",
- "I've contributed to high impact productions for Disney+, Netflix and HBO Max, as well as independent film and other audiovisual projects. My skills span cinematic sound design, Foley, dialogue editing and restoration, and immersive audio for VR and multimedia experiences.": "He participado en producciones para Disney+, Netflix y HBO Max, así como en cine independiente y campañas publicitarias nacionales e internacionales. Mis habilidades incluyen diseño de sonido cinematográfico, grabación y edición de Foley, edición y restauración de diálogos, y audio inmersivo para VR y experiencias multimedia.",
+ "I've contributed to high impact productions for different streaming platforms, as well as independent film and other audiovisual projects. My skills span cinematic sound design, Foley, dialogue editing and restoration, and immersive audio for VR and multimedia experiences.": "He participado en producciones para diferentes plataformas de streaming así como en cine independiente y campañas publicitarias nacionales e internacionales. Mis habilidades incluyen diseño de sonido cinematográfico, grabación y edición de Foley, edición y restauración de diálogos, y audio inmersivo para VR y experiencias multimedia.",
  "My Services": "Mis servicios",
  "Sound Design & Foley": "Diseño de sonido y Foley",
  "Use of high-quality, royalty-free sound libraries.": "Uso de librerías de sonido libres de royalty de alta calidad.",
@@ -1953,7 +1961,7 @@ window.AVATARS = {
  "Let's talk about it! Is your film going through a new cut? I can coordinate the re-conform between picture and audio.": "¡Hablemos! ¿Tu película tiene un nuevo corte? Puedo coordinar el reconformado entre imagen y audio.",
  
  "Type of work": "Tipo de trabajo",
- "Projects": "Proyectos",
+ "Projects portfolio": "Portafolio de proyectos",
  "Sound Design and Post for Film & TV": "Diseño de sonido y posproducción para cine y TV",
  "Sound Effects, Foley editing & ADR Recordings": "Efectos de sonido, edición de Foley y grabaciones de ADR",
  "Commercials & Music Video Clips": "Campañas comerciales y videoclips musicales",
@@ -2269,6 +2277,20 @@ window.AVATARS = {
   new IntersectionObserver(function(es){
     es.forEach(function(e){ if(!done) box.classList.toggle("nudge",e.isIntersecting); });
   },{threshold:.4}).observe(box);
+})();
+</script>
+<!-- _______________________________________________________________________ -->
+<!-- 29. SCRIPT: EMOJI DE LA CABECERA. Agrega la clase "hero-in-view" al <body> mientras la portada (About me) sigue a la vista; el CSS la usa para difuminar el emoji. Cambia 140 para que aparezca antes o después -->
+<!-- _______________________________________________________________________ -->
+<script>
+(function(){
+  var hero=document.querySelector(".wrap.hero"); if(!hero) return;
+  var LIMIT=140; /* px: el emoji aparece cuando el final de la portada sube por encima de este punto */
+  function check(){ document.body.classList.toggle("hero-in-view", hero.getBoundingClientRect().bottom > LIMIT); }
+  window.addEventListener("scroll",check,{passive:true});
+  window.addEventListener("resize",check);
+  window.addEventListener("load",check);
+  check();
 })();
 </script>
 </body>
