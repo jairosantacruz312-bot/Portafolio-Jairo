@@ -100,7 +100,7 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 /* _______________________________________________________________________ */
 /* 5. ESTILOS: PORTADA Y SELECTOR DE LADO (A / B) */
 /* _______________________________________________________________________ */
-.hero{padding:80px clamp(24px,4vw,64px) 64px} /* 24px a los lados: alinea la portada con la cabecera y evita que el texto toque el borde en celular */
+.hero{padding:80px clamp(24px,4vw,64px) 24px} /* 24px a los lados: alinea la portada con la cabecera y evita que el texto toque el borde en celular */
 .hero h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,5.2vw,64px);line-height:1.1;letter-spacing:-.025em;max-width:22ch}
 .hero .sub+.sub{margin-top:16px}
 .hero .sub{margin-top:28px;font-size:19px;color:var(--muted);max-width:64ch}
@@ -194,7 +194,8 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 /* _______________________________________________________________________ */
 /* 8. ESTILOS: "MY WORK HAS BEEN FEATURED ON" (logos) */
 /* _______________________________________________________________________ */
-.featured{text-align:center}
+.featured{text-align:center;border-top:0;padding-top:40px}
+.featured.featured--b{border-top:1px solid var(--line);padding-top:72px} /* copia de debajo de los pósters: lleva su línea de separación arriba */ /* sin línea arriba; padding-top = distancia entre la biografía y los logos (sube el número para alejarlos) */
 .featured .label{color:var(--muted)}
 .logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px 24px;margin-top:20px}
 .logo{padding:18px 32px;border-radius:16px;display:flex;align-items:center;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.04em;color:var(--muted)}
@@ -240,6 +241,45 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
     radial-gradient(ellipse at 100% 30%,#06181c 0,transparent 55%),
     linear-gradient(100deg,#010101 0%,#030a0a 45%,#051419 100%)}
 .featured:has(.logo-hulu:hover) .wrap::after{opacity:1}
+
+/* DESVANECIDO SUPERIOR: los fondos de color se funden con el negro en la parte de arriba (cerca del texto de la biografía). Sube los px para que el fundido sea más largo, bájalos para que sea más corto */
+.featured::before,.featured::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 140px);mask-image:linear-gradient(180deg,transparent 0,#000 140px)}
+.featured .wrap::before,.featured .wrap::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 100px);mask-image:linear-gradient(180deg,transparent 0,#000 100px)}
+
+/* PRIMERA franja (debajo de About me): los colores se funden con el negro también ABAJO, sin línea de separación, y todo más pegado al texto de arriba y a "My Services". Sube/baja los px para cambiar el largo del fundido */
+.featured:not(.featured--b){padding-top:8px;padding-bottom:16px}
+.featured:not(.featured--b)::before,.featured:not(.featured--b)::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 140px,#000 calc(100% - 140px),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 140px,#000 calc(100% - 140px),transparent 100%)}
+.featured:not(.featured--b) .wrap::before,.featured:not(.featured--b) .wrap::after{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 90px,#000 calc(100% - 90px),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 90px,#000 calc(100% - 90px),transparent 100%)}
+.featured:not(.featured--b)+#servicios{border-top:0;padding-top:40px} /* quita la línea entre la franja y "My Services" y los acerca */
+
+/* PRIMERA franja: logos en GRIS (combinan con el fondo negro) y solo toman su color (y el fondo de color) al pasar el cursor. Para un gris más oscuro baja el brightness; para quitar el efecto, borra esta regla */
+.featured:not(.featured--b) .logo:not(:hover) img{filter:grayscale(1) brightness(.85)}
+
+/* PRIMERA franja: los fondos de color se EXPANDEN hacia la biografía (arriba) y hacia "My Services" (abajo), por detrás del texto. --ext = cuánto se extienden (sube para más alcance); --fade = largo del fundido en cada extremo */
+.featured:not(.featured--b){--ext:210px;--fade:230px;overflow:visible}
+.wrap.hero,.featured:not(.featured--b)+#servicios{position:relative;z-index:1} /* texto de la biografía y "My Services" quedan POR ENCIMA del fondo de color expandido */
+.featured:not(.featured--b)::before,.featured:not(.featured--b)::after,
+.featured:not(.featured--b) .wrap::before,.featured:not(.featured--b) .wrap::after{top:calc(var(--ext) * -1);bottom:calc(var(--ext) * -1);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%)}
+
+/* PRIMERA franja: fondos MÁS INTENSOS para Disney+ (azul más vivo) y Hulu (verde azulado más vivo). Para más intensidad sube los colores/alphas; para menos, acércalos al negro */
+.featured:not(.featured--b)::after{background:linear-gradient(180deg,#090a38 0%,#101e6e 30%,#1a3aa8 50%,#2250c4 68%,#2b66d8 84%,#377ae2 100%)}
+.featured:not(.featured--b) .wrap::after{background:
+    radial-gradient(ellipse at 50% 50%,rgba(28,231,131,.36) 0,transparent 62%),
+    radial-gradient(ellipse at 100% 100%,#0c7a62 0,transparent 66%),
+    radial-gradient(ellipse at 100% 30%,#08403f 0,transparent 60%),
+    linear-gradient(100deg,#020a07 0%,#052a20 50%,#0a4f42 100%)}
+
+/* PRIMERA franja: al pasar el cursor, los logos de HBO Max, Disney+ y Hulu toman su color pero un poco apagado (opacidad). Sube el .78 para más brillo, bájalo para más apagado */
+.featured:not(.featured--b) .logo-hbo:hover img,.featured:not(.featured--b) .logo-disney:hover img,.featured:not(.featured--b) .logo-hulu:hover img{opacity:.78}
+
+/* ANIMACIÓN DE LLAMADA DE ATENCIÓN en los 3 botones de "Projects": se mueven muy suavemente (arriba/abajo) mientras están a la vista; se detiene al pasar el cursor o al hacer clic en alguno. Distancia: --nudge | duración: 2.8s | escalonado: delay de cada botón */
+@keyframes sideNudge{0%,55%,100%{transform:translateY(0)}25%{transform:translateY(calc(var(--nudge,4px) * -1))}}
+.sides.nudge .side{animation:sideNudge 2.8s ease-in-out infinite}
+.sides.nudge .side:nth-child(2){animation-delay:.18s}
+.sides.nudge .side:nth-child(3){animation-delay:.36s}
+.sides.nudge:hover .side,.sides.nudge .side:hover{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.sides.nudge .side{animation:none}}
 
 /* _______________________________________________________________________ */
 /* 9. ESTILOS: CONTACTO Y PIE DE PÁGINA (el cuadro de contacto tiene su propio ancho máximo: .contact{max-width:1072px}) */
@@ -508,12 +548,31 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
     <!-- ____________ DESCRIPCIÓN: dos párrafos debajo del avatar (ancho completo) ____________ -->
     <div class="hero-text hero-bottom">
-      <p class="sub">I have contributed to high-profile productions featured on major streaming platforms, including Disney+, Netflix, and HBO Max, as well as a diverse range of independent film and audiovisual projects.</p>
-      <p class="sub">My expertise lies in cinematic sound design, Foley editing, dialogue editing and restoration, and audio post-production. I also specialize in immersive audio for VR and multimedia experiences, with a strong focus on delivering high-quality binaural and Ambisonic mixes that enhance spatial realism and audience immersion.</p>
+      <p class="sub">I've contributed to high impact productions for Disney+, Netflix and HBO Max, as well as independent film and other audiovisual projects. My skills span cinematic sound design, Foley, dialogue editing and restoration, and immersive audio for VR and multimedia experiences.</p>
     </div>
   </div>
 
 </div>
+
+<!-- _______________________________________________________________________ -->
+<!-- 15. "MY WORK HAS BEEN FEATURED ON" (logos de plataformas). Está justo DEBAJO de la biografía (About me). Para moverla, corta todo este bloque de sección "featured" -->
+<!-- _______________________________________________________________________ -->
+<section class="featured" aria-labelledby="t-featured">
+<div class="wrap">
+  <p class="label" id="t-featured">MY WORK HAS BEEN FEATURED ON</p>
+  <div class="logos">
+    <!-- LOGO NETFLIX: imagen en la sección 19 (clave "netflix"). --h = altura del logo en pantalla -->
+    <span class="logo logo-netflix" style="--h:30px"><img data-logo="netflix" alt="Netflix"></span>
+    <!-- LOGO HBO MAX: imagen en la sección 19 (clave "hbo-max") -->
+    <span class="logo logo-hbo" style="--h:28px"><img data-logo="hbo-max" alt="HBO Max"></span>
+    <!-- LOGO DISNEY+: imagen en la sección 19 (clave "disney-plus") -->
+    <span class="logo logo-disney" style="--h:62px"><img data-logo="disney-plus" alt="Disney+"></span>
+    <!-- LOGO HULU: imagen en la sección 19 (clave "hulu"). Fondo al pasar el cursor: negro con verde azulado (ver sección de estilos) -->
+    <span class="logo logo-hulu" style="--h:34px"><img data-logo="hulu" alt="Hulu"></span>
+  </div>
+  <!-- Deja solo las plataformas donde de verdad aparece tu trabajo. Borra las que no apliquen. -->
+</div>
+</section>
 
 <!-- _______________________________________________________________________ -->
 <!-- 13b. SERVICES & SKILLS: sección fija entre la biografía y el portafolio (tarjetas desplegables de servicios y habilidades) -->
@@ -538,7 +597,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
             <li>Use of high-quality, royalty-free sound libraries.</li>
             <li>Sound effects and soundscape design crafted to enhance your story.</li>
             <li>Microphone techniques for Foley recording.</li>
-            <li>AI-powered tools for creating unique sound designs.</li>
           </ul>
         </div>
       </div>
@@ -581,7 +639,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
     <div class="acc">
       <button class="acc__head" type="button" aria-expanded="false" aria-controls="acc-4" id="acc-h4">
         <span class="n">04</span>
-        <span class="acc__title">Is your post-production workflow a little messy? Do you need a post-production coordinator?</span>
+        <span class="acc__title">Post-production coordination services</span>
         <span class="acc__icon" aria-hidden="true"></span>
       </button>
       <div class="acc__body" id="acc-4" role="region" aria-labelledby="acc-h4">
@@ -607,7 +665,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
     <button class="side" role="tab" id="tab-cine" aria-controls="panel-cine" aria-selected="true" data-target="panel-cine" type="button">
       <!-- FONDO: póster difuminado de "The Trainer" (lo pone el script 24). Para quitarlo, borra este span y el script 24 -->
       <span class="side__bg" aria-hidden="true" data-poster="the-trainer"><i></i></span>
-      <span class="name">Sound Design and Post for Film</span>
+      <span class="name">Sound Design and Post for Film &amp; TV</span>
       <span class="desc">Sound Effects, Foley editing &amp; ADR Recordings</span>
     </button>
     <!-- LADO B: muestra el panel "panel-publicidad" (sección 13c) -->
@@ -634,7 +692,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 <!-- 12. LADO A: DISEÑO DE SONIDO Y POST PARA CINE (reproductor a la izquierda, descripción a la derecha) -->
 <!-- _______________________________________________________________________ -->
 <div class="panel" id="panel-cine" role="tabpanel" aria-labelledby="tab-cine">
-  <h2>Sound Design and Post for Film</h2>
+  <h2>Sound Design and Post for Film &amp; TV</h2>
   <p class="muted">Sound Effects, Foley editing &amp; ADR Recordings</p>
 
   <div class="playlist">
@@ -976,11 +1034,11 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </section>
 
 <!-- _______________________________________________________________________ -->
-<!-- 15. "MY WORK HAS BEEN FEATURED ON" (logos de plataformas) -->
+<!-- 15b. COPIA de "MY WORK HAS BEEN FEATURED ON": misma sección repetida DEBAJO de los pósters (antes del contacto); mismos logos y mismos efectos. Si cambias una, cambia la otra. La primera está debajo de la biografía -->
 <!-- _______________________________________________________________________ -->
-<section class="featured" aria-labelledby="t-featured">
+<section class="featured featured--b" aria-labelledby="t-featured-b">
 <div class="wrap">
-  <p class="label" id="t-featured">MY WORK HAS BEEN FEATURED ON</p>
+  <p class="label" id="t-featured-b">MY WORK HAS BEEN FEATURED ON</p>
   <div class="logos">
     <!-- LOGO NETFLIX: imagen en la sección 19 (clave "netflix"). --h = altura del logo en pantalla -->
     <span class="logo logo-netflix" style="--h:30px"><img data-logo="netflix" alt="Netflix"></span>
@@ -1003,7 +1061,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   <div class="contact">
     <div>
       <h2 id="t-contacto">Let's sound together!</h2>
-      <p class="muted">Let's talk about your project on Upwork. Together, we can make great sound that brings your film to life.</p>
+      <p class="muted">Let's talk about your project. Together, we can make great sound that brings your film to life.</p>
       <!-- Los datos de contacto NO están en el HTML: aparecen en un globito al hacer clic en el emoji (sección 22) -->
     </div>
     <!-- ____________ EMOJI ANIMADO (reemplaza los botones): parpadea solo y reacciona al hacer clic. Imagen y código en la sección 22 ____________ -->
@@ -1875,14 +1933,12 @@ window.AVATARS = {
  "Hi, my name is": "Hola, soy",
  ". I am a sound engineer working across audio post production. Focused on telling stories through sound": ". Soy un ingeniero de sonido y me especializo en la post producción de audio. Me encargo de realizar narrativas para cine a través del sonido",
  "Cartoon avatar of Jairo wearing headphones; his eyes follow your cursor": "Avatar de caricatura de Jairo con audífonos; sus ojos siguen tu cursor",
- "I have contributed to high-profile productions featured on major streaming platforms, including Disney+, Netflix, and HBO Max, as well as a diverse range of independent film and audiovisual projects.": "He participado en producciones audiovisuales de gran perfil presentadas en las principales plataformas de streaming, como Disney+, Netflix y HBO Max, así como en algunas películas y cortometrajes de corte independiente, así como campañas publicitarias nacionales e internacionales.",
- "My expertise lies in cinematic sound design, Foley editing, dialogue editing and restoration, and audio post-production. I also specialize in immersive audio for VR and multimedia experiences, with a strong focus on delivering high-quality binaural and Ambisonic mixes that enhance spatial realism and audience immersion.": "Dentro de mis habilidades son el diseño de sonido cinematográfico, la grabación y edición de foley, la edición y restauración de diálogos. También me especializo en la producción de audio inmersivo para VR y en experiencias multimedia, de alta calidad que realzan el realismo espacial y la inmersión de la audiencia.",
+ "I've contributed to high impact productions for Disney+, Netflix and HBO Max, as well as independent film and other audiovisual projects. My skills span cinematic sound design, Foley, dialogue editing and restoration, and immersive audio for VR and multimedia experiences.": "He participado en producciones para Disney+, Netflix y HBO Max, así como en cine independiente y campañas publicitarias nacionales e internacionales. Mis habilidades incluyen diseño de sonido cinematográfico, grabación y edición de Foley, edición y restauración de diálogos, y audio inmersivo para VR y experiencias multimedia.",
  "My Services": "Mis servicios",
  "Sound Design & Foley": "Diseño de sonido y Foley",
  "Use of high-quality, royalty-free sound libraries.": "Uso de librerías de sonido libres de royalty de alta calidad.",
  "Sound effects and soundscape design crafted to enhance your story.": "Diseño de paisajes sonoros creados para realzar tu historia.",
  "Microphone techniques for Foley recording.": "Instrumentos y espacios para la grabación de Foley.",
- "AI-powered tools for creating unique sound designs.": "Herramientas con IA para crear diseños sonoros únicos.",
  "Dialogue Editing & Cleanup": "Edición y limpieza de diálogos",
  "Multitrack dialogue editing for film.": "Edición de diálogos para cine.",
  "Dialogue cleanup and restoration using iZotope RX.": "Limpieza y restauración de diálogos con iZotope RX.",
@@ -1892,13 +1948,13 @@ window.AVATARS = {
  "Immersive audio mixing using first-order and higher-order ambisonic plugin suites.": "Mezcla de audio inmersivo con suites de plugins ambisonics de primer orden y de orden superior.",
  "Binaural audio mixing.": "Mezcla de audio binaural.",
  "Use of VR headsets for better monitoring of immersive mix.": "Uso de visores de VR para monitorear mejor el producto final.",
- "Is your post-production workflow a little messy? Do you need a post-production coordinator?": "¿Tu flujo de posproducción está un poco desordenado? ¿Necesitas un coordinador de posproducción?",
+ "Post-production coordination services": "Servicios de coordinación de posproducción",
  "Production sound recording knowledge that can be applied in post-production.": "Conocimientos de grabación de sonido directo que se pueden aplicar en posproducción.",
  "Let's talk about it! Is your film going through a new cut? I can coordinate the re-conform between picture and audio.": "¡Hablemos! ¿Tu película tiene un nuevo corte? Puedo coordinar el reconformado entre imagen y audio.",
  
  "Type of work": "Tipo de trabajo",
  "Projects": "Proyectos",
- "Sound Design and Post for Film": "Diseño de sonido y posproducción para cine y TV",
+ "Sound Design and Post for Film & TV": "Diseño de sonido y posproducción para cine y TV",
  "Sound Effects, Foley editing & ADR Recordings": "Efectos de sonido, edición de Foley y grabaciones de ADR",
  "Commercials & Music Video Clips": "Campañas comerciales y videoclips musicales",
  "Sound design, Dialogue Editing, Music editing & Audio Mix": "Diseño de sonido, edición de diálogos, edición musical y mezcla de audio",
@@ -1957,7 +2013,7 @@ window.AVATARS = {
  "FILMS & TV SHOWS": "PELÍCULAS Y SERIES",
  "COMING SOON": "PRÓXIMAMENTE",
  "MY WORK HAS BEEN FEATURED ON": "MI TRABAJO SE ENCUENTRA EN",
-  "Let's talk about your project on Upwork. Together, we can make great sound that brings your film to life.": "Vamos a hablar de tu proyecto en UPWORK. Juntos, podemos darle vida a tu proyecto audiovisual con un sonido de alta calidad.",
+  "Let's talk about your project. Together, we can make great sound that brings your film to life.": "Vamos a hablar de tu proyecto. Juntos, podemos darle vida a tu proyecto audiovisual con un sonido de alta calidad.",
  "Medellín, Colombia": "Medellín, Colombia",
  "Email": "Correo",
  "In this thriller set in Colombia, I was in charge of sound effects editing as well as Foley editing.": "En este thriller ambientado en Colombia, estuve a cargo de la edición de efectos de sonido y de la edición de Foley.",
@@ -2199,6 +2255,20 @@ window.AVATARS = {
       if(!cur||!cur.offsetParent)setPlaying(false);
     });
   });
+})();
+</script>
+<!-- _______________________________________________________________________ -->
+<!-- 28. SCRIPT: ANIMACIÓN DE LOS 3 BOTONES DE "PROJECTS". Se activa cuando los botones están a la vista y se apaga para siempre al hacer clic en uno (ya vio que son botones). Estilos: busca "sideNudge" en el CSS -->
+<!-- _______________________________________________________________________ -->
+<script>
+(function(){
+  var box=document.querySelector(".sides"); if(!box) return;
+  var done=false;
+  box.addEventListener("click",function(){ done=true; box.classList.remove("nudge"); });
+  if(!("IntersectionObserver" in window)){ box.classList.add("nudge"); return; }
+  new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(!done) box.classList.toggle("nudge",e.isIntersecting); });
+  },{threshold:.4}).observe(box);
 })();
 </script>
 </body>
